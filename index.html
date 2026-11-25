@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<title>Revolu</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#08090d;color:white;font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;padding-bottom:85px}
+header{padding:25px 20px;display:flex;justify-content:space-between;align-items:center}
+.logo{font-size:27px;font-weight:800;letter-spacing:-1px}
+.avatar{background:#292a38;border-radius:50%;padding:12px}
+main{padding:10px 20px}
+.muted{color:#999baa;font-size:13px}
+.balance{font-size:39px;font-weight:700;margin:8px 0 22px}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.action{background:#20212b;padding:17px 5px;border-radius:16px;text-align:center;font-size:13px}
+.action span{display:block;font-size:23px;margin-bottom:9px}
+.card{margin:27px 0;background:linear-gradient(125deg,#2938c9,#6542c7,#9b50bb);height:190px;border-radius:19px;padding:22px;display:flex;flex-direction:column;justify-content:space-between}
+.cardname{font-size:19px;font-weight:800}
+.cardnumber{font-size:20px;letter-spacing:2px}
+section{margin-top:30px}
+.sectionhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px}
+h3{font-size:18px;margin:0}
+.item{background:#171820;border-radius:15px;padding:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.person{display:flex;gap:12px;align-items:center}
+.pic{width:40px;height:40px;background:#34364c;border-radius:50%;display:grid;place-items:center}
+button{border:0;background:#7860ef;color:white;padding:12px 16px;border-radius:12px;font-weight:650}
+input{width:100%;padding:14px;border:1px solid #353643;background:#171820;color:white;border-radius:12px;margin:8px 0 13px;font-size:15px}
+.panel{background:#171820;padding:17px;border-radius:16px;margin-bottom:12px}
+nav{position:fixed;bottom:0;left:0;right:0;background:#111218;border-top:1px solid #292a34;display:flex;justify-content:space-around;padding:13px 3px}
+nav button{background:transparent;color:#a9a9b6;padding:5px;font-size:11px}
+nav button.active{color:#a18bff}
+.page{display:none}
+.page.active{display:block}
+.positive{color:#65d99b}
+.negative{color:#ff8585}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">revolu</div>
+<div class="avatar">☺</div>
+</header>
+
+<main>
+<div id="home" class="page active">
+<div class="muted">Total balance · EUR</div>
+<div class="balance" id="balance">€48,734.74</div>
+
+<div class="actions">
+<div class="action" onclick="show('add')"><span>＋</span>Add money</div>
+<div class="action" onclick="show('send')"><span>↗</span>Send</div>
+<div class="action" onclick="show('people')"><span>♙</span>People</div>
+</div>
+
+<div class="card">
+<div class="cardname">revolu</div>
+<div class="cardnumber">•••• &nbsp;•••• &nbsp;•••• &nbsp;4821</div>
+<div style="display:flex;justify-content:space-between">
+<span>VIRTUAL CARD</span><b style="font-size:20px">●●</b>
+</div>
+</div>
+
+<section>
+<div class="sectionhead"><h3>Recent transactions</h3></div>
+<div id="transactions"><div class="muted">No transactions yet</div></div>
+</section>
+</div>
+
+<div id="add" class="page">
+<h3>Add virtual money</h3>
+<div class="panel">
+<div class="muted">Amount in EUR</div>
+<input id="addAmount" type="number" placeholder="Enter amount">
+<button onclick="addMoney()">Add money</button>
+</div>
+</div>
+
+<div id="people" class="page">
+<div class="sectionhead"><h3>Your people</h3></div>
+<div class="panel">
+<input id="personName" placeholder="Full name">
+<input id="personUser" placeholder="Username">
+<button onclick="addPerson()">Add person</button>
+</div>
+<div id="peopleList"></div>
+</div>
+
+<div id="send" class="page">
+<h3>Send virtual money</h3>
+<div class="panel">
+<div class="muted">Choose a recipient</div>
+<select id="recipient" style="width:100%;padding:14px;background:#20212b;color:white;border-radius:12px;margin:10px 0"></select>
+<div class="muted">Amount in EUR</div>
+<input id="sendAmount" type="number" placeholder="0.00">
+<input id="description" placeholder="Payment description">
+<button onclick="sendMoney()">Confirm transfer</button>
+</div>
+</div>
+
+<div id="admin" class="page">
+<h3>Admin commands</h3>
+<p class="muted">Manage your fictional account balances.</p>
+<div class="panel">
+<input id="command" placeholder="/addmoney @alex 500 EUR">
+<button onclick="runCommand()">Run command</button>
+<p id="commandResult" class="muted"></p>
+</div>
+<p class="muted">Commands: /addmoney, /remove, /setbalance</p>
+</div>
+</main>
+
+<nav>
+<button class="active" onclick="show('home',this)">⌂<br>Home</button>
+<button onclick="show('people',this)">♙<br>People</button>
+<button onclick="show('send',this)">↗<br>Payments</button>
+<button onclick="show('admin',this)">⚙<br>Admin</button>
+</nav>
+
+<script>
+const initial={
+balance:48734.74,
+people:[],
+transactions:[]
+};
+let data;
+try{
+data=JSON.parse(localStorage.getItem('revoluData'))||initial;
+}catch(e){data=initial}
+
+function save(){
+localStorage.setItem('revoluData',JSON.stringify(data));
+render();
+}
+function money(n){
+return '€'+Number(n).toLocaleString('en-IE',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function show(id,button){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+if(button)button.classList.add('active');
+render();
+}
+function transaction(title,amount){
+data.transactions.unshift({title,amount,date:new Date().toLocaleString()});
+}
+function addMoney(){
+let amount=Number(document.getElementById('addAmount').value);
+if(!amount||amount<=0)return alert('Enter a valid amount');
+data.balance+=amount;
+transaction('Virtual money added',amount);
+document.getElementById('addAmount').value='';
+save();show('home');
+}
+function addPerson(){
+let name=document.getElementById('personName').value.trim();
+let username=document.getElementById('personUser').value.trim().replace('@','');
+if(!name||!username)return alert('Enter name and username');
+if(data.people.some(p=>p.username.toLowerCase()===username.toLowerCase()))return alert('Username already exists');
+data.people.push({name,username,balance:0});
+document.getElementById('personName').value='';
+document.getElementById('personUser').value='';
+save();
+}
+function sendMoney(){
+let username=document.getElementById('recipient').value;
+let person=data.people.find(p=>p.username===username);
+let amount=Number(document.getElementById('sendAmount').value);
+let desc=document.getElementById('description').value||'Virtual transfer';
+if(!person)return alert('Add a person first');
+if(!amount||amount<=0||amount>data.balance)return alert('Invalid amount or insufficient balance');
+data.balance-=amount;
+person.balance+=amount;
+transaction('Sent to '+person.name+' · '+desc,-amount);
+save();show('home');
+}
+function runCommand(){
+let parts=document.getElementById('command').value.trim().split(/\s+/);
+let cmd=parts[0],user=(parts[1]||'').replace('@',''),amount=Number(parts[2]);
+let p=data.people.find(x=>x.username.toLowerCase()===user.toLowerCase());
+if(!user||!Number.isFinite(amount)||amount<0){
+return result('Invalid command');
+}
+if(cmd==='/addmoney'){
+if(p)p.balance+=amount;
+else data.balance+=amount;
+transaction('Admin virtual credit: '+(p?p.name:'Main account'),amount);
+}else if(cmd==='/remove'){
+if(p){if(amount>p.balance)return result('Insufficient balance');p.balance-=amount;}
+else{if(amount>data.balance)return result('Insufficient balance');data.balance-=amount;}
+transaction('Admin virtual removal',-amount);
+}else if(cmd==='/setbalance'){
+if(p)p.balance=amount;
+else data.balance=amount;
+transaction('Admin balance adjustment',0);
+}else return result('Unknown command');
+save();result('Command completed');
+}
+function result(message){
+document.getElementById('commandResult').textContent=message;
+}
+function render(){
+document.getElementById('balance').textContent=money(data.balance);
+document.getElementById('peopleList').innerHTML=data.people.map(p=>
+`<div class="item"><div class="person"><div class="pic">☺</div><div><b>${escapeHTML(p.name)}</b><div class="muted">@${escapeHTML(p.username)}</div></div></div><b>${money(p.balance)}</b></div>`
+).join('')||'<p class="muted">No people added yet</p>';
+document.getElementById('recipient').innerHTML=data.people.map(p=>
+`<option value="${escapeHTML(p.username)}">${escapeHTML(p.name)} (@${escapeHTML(p.username)})</option>`
+).join('');
+document.getElementById('transactions').innerHTML=data.transactions.slice(0,15).map(t=>
+`<div class="item"><div><b>${escapeHTML(t.title)}</b><div class="muted">${escapeHTML(t.date)}</div></div><b class="${t.amount>=0?'positive':'negative'}">${t.amount===0?'Updated':(t.amount>0?'+':'−')+money(Math.abs(t.amount))}</b></div>`
+).join('')||'<div class="muted">No transactions yet</div>';
+}
+function escapeHTML(s){
+return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+render();
+</script>
+</body>
+</html>
